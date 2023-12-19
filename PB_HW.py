@@ -1,8 +1,5 @@
+import json
 from datetime import datetime, timedelta
-import platform
-
-import platform
-
 import aiohttp
 import asyncio
 
@@ -26,7 +23,14 @@ async def main(days=1):
 
             # Фильтрация результатов только для USD и EUR
             filtered_result = [
-                rate
+                {
+                    rate["date"]: {
+                        rate["currency"]: {
+                            "sale": float(rate["sale"]),
+                            "purchase": float(rate["purchase"]),
+                        }
+                    }
+                }
                 for rate in result["exchangeRate"]
                 if rate["currency"] in ["USD", "EUR"]
             ]
@@ -36,5 +40,5 @@ async def main(days=1):
 
 if __name__ == "__main__":
     days_to_fetch = 7  # You can change this to the desired number of days
-    r = asyncio.run(main(days=days_to_fetch))
-    print(r)
+    result = asyncio.run(main(days=days_to_fetch))
+    print(json.dumps(result, indent=2, ensure_ascii=False))
