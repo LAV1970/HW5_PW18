@@ -10,15 +10,22 @@ class CurrencyExchange:
 
     async def fetch_exchange_rate(self, session, days):
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
+        start_date = end_date - timedelta(days=days - 1)
 
         params = {
-            "date": end_date.strftime("%d.%m.%Y"),
-            "json": "true",  # Поменял True на "true"
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
         }
 
         try:
-            async with session.get(self.api_url, params=params) as response:
+            url_params = {
+                "start_date": start_date.strftime("%Y-%m-%d"),
+                "end_date": end_date.strftime("%Y-%m-%d"),
+            }
+            url = f"{self.api_url}?json&start_date={url_params['start_date']}&end_date={url_params['end_date']}"
+
+            async with session.get(url) as response:
+                print(f"Запрос к API: {url}")
                 if response.status == 200:
                     return await response.json()
                 else:
@@ -34,25 +41,27 @@ class CurrencyExchange:
         async with aiohttp.ClientSession() as session:
             exchange_rate = await self.fetch_exchange_rate(session, days)
 
-        if exchange_rate:
-            filtered_result = [
-                {
-                    rate["baseCurrency"]: {
-                        rate["currency"]: {
+            if exchange_rate:
+                result = []
+                for day_rate in exchange_rate:
+                    filtered_result = [
+                        {
+                            "date": day_rate["date"],
+                            "baseCurrency": rate["baseCurrency"],
+                            "currency": rate["currency"],
                             "sale": rate.get("saleRate", rate["saleRateNB"]),
                             "purchase": rate.get(
                                 "purchaseRate", rate["purchaseRateNB"]
                             ),
                         }
-                    }
-                }
-                for rate in exchange_rate["exchangeRate"]
-                if rate["currency"] in ["USD", "EUR"]
-            ]
+                        for rate in day_rate["exchangeRate"]
+                        if rate["currency"] in ["USD", "EUR"]
+                    ]
+                    result.extend(filtered_result)
 
-            return filtered_result
-        else:
-            return None
+                return result
+            else:
+                return None
 
 
 def main():
