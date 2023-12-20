@@ -33,7 +33,26 @@ class CurrencyExchange:
     async def get_exchange_rates(self, days):
         async with aiohttp.ClientSession() as session:
             exchange_rate = await self.fetch_exchange_rate(session, days)
-            return exchange_rate
+
+        if exchange_rate:
+            filtered_result = [
+                {
+                    rate["baseCurrency"]: {
+                        rate["currency"]: {
+                            "sale": rate.get("saleRate", rate["saleRateNB"]),
+                            "purchase": rate.get(
+                                "purchaseRate", rate["purchaseRateNB"]
+                            ),
+                        }
+                    }
+                }
+                for rate in exchange_rate["exchangeRate"]
+                if rate["currency"] in ["USD", "EUR"]
+            ]
+
+            return filtered_result
+        else:
+            return None
 
 
 def main():
