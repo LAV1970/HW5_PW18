@@ -13,29 +13,25 @@ class CurrencyExchange:
         start_date = end_date - timedelta(days=days - 1)
 
         params = {
+            "json": "",
+            "date": "",
             "start_date": start_date.strftime("%Y-%m-%d"),
             "end_date": end_date.strftime("%Y-%m-%d"),
         }
 
         try:
-            url_params = {
-                "start_date": start_date.strftime("%Y-%m-%d"),
-                "end_date": end_date.strftime("%Y-%m-%d"),
-            }
-            url = f"{self.api_url}?json&start_date={url_params['start_date']}&end_date={url_params['end_date']}"
-
-            async with session.get(url) as response:
-                print(f"Запрос к API: {url}")
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    error_text = await response.text()
-                    print(f"Ошибка при запросе к API. Статус код: {response.status}")
-                    print(f"Текст ошибки: {error_text}")
-                    return None
+            async with session.get(self.api_url, params=params) as response:
+                print(f"Запрос к API: {response.url}")
+            if response.status == 200:
+                return await response.json()
+            else:
+                error_text = await response.text()
+                print(f"Ошибка при запросе к API. Статус код: {response.status}")
+                print(f"Текст ошибки: {error_text}")
+                return None
         except aiohttp.ClientError as e:
             print(f"Ошибка при выполнении запроса: {e}")
-            return None
+        return None
 
     async def get_exchange_rates(self, days):
         async with aiohttp.ClientSession() as session:
