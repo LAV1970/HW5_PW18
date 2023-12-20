@@ -1,59 +1,60 @@
 import aiohttp
 import asyncio
+from datetime import datetime, timedelta
 
 
-async def fetch(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.json()
+class CurrencyExchange:
+    def __init__(self, api_url, max_days):
+        self.api_url = api_url
+        self.max_days = max_days
+
+    async def fetch_exchange_rate(self, session, days):
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        params = {
+            "start_date": start_date.strftime("%d.%m.%Y"),
+            "end_date": end_date.strftime("%d.%m.%Y"),
+        }
+
+        async with session.get(self.api_url, params=params) as response:
+            if response.status == 200:
+                return await response.json()
+            else:
+                return None
+
+    async def get_exchange_rates(self, days):
+        async with aiohttp.ClientSession() as session:
+            exchange_rate = await self.fetch_exchange_rate(session, days)
+            return exchange_rate
 
 
-async def main(days):
-    if days > 10:
-        print("Error: You can request exchange rates for up to 10 days only.")
-        return
-
-    url = f"https://api.privatbank.ua/p24api/exchange_rates?json&date="
-    tasks = [fetch(f"{url}{i}") for i in range(days, 0, -1)]
+def main():
+    api_url = "https://api.privatbank.ua/p24api/exchange_rates?json&date="  # фактический URL API
+    max_days = 10
 
     try:
-        responses = await asyncio.gather(*tasks)
-    except Exception as e:
-        print(f"Error fetching data: {e}")
-        return
+        days = int(
+            input(
+                f"Введите количество дней для получения курсов валют (до {max_days}): "
+            )
+        )
+        if days > max_days:
+            raise ValueError(
+                f"Ошибка: Вы можете запрашивать курсы обмена только на {max_days} дней вперёд"
+            )
 
-    filtered_result = []
+        currency_exchange = CurrencyExchange(api_url, max_days)
+        exchange_rate = asyncio.run(currency_exchange.get_exchange_rates(days))
 
-    for response in responses:
-        if "exchangeRate" in response:
-            rates = response["exchangeRate"]
-            filtered_rates = {}
+        if exchange_rate:
+            print(exchange_rate)
+        else:
+            print("Ошибка при получении данных.")
 
-            for rate in rates:
-                if rate["currency"] in ["USD", "EUR"]:
-                    currency_code = rate["currency"]
-                    filtered_rates[currency_code] = {
-                        "sale": rate["saleRateNB"],
-                        "purchase": rate["purchaseRateNB"],
-                    }
-
-            if filtered_rates:
-                date_key = response.get("date", "Unknown Date")
-                filtered_result.append({date_key: filtered_rates})
-
-    if not filtered_result:
-        print("No data found in the response.")
-        return
-
-    print(filtered_result)
+    except ValueError as ve:
+        print(f"Ошибка: {ve}")
 
 
 if __name__ == "__main__":
-    try:
-        days_to_fetch = int(
-            input("Enter the number of days for exchange rates (up to 10): ")
-        )
-    except ValueError:
-        print("Error: Please enter a valid number.")
-    else:
-        asyncio.run(main(days_to_fetch))
+    main()
