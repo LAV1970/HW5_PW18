@@ -19,29 +19,36 @@ async def main(days=1):
             print("Content-type:", response.headers["content-type"])
             print("Cookies: ", response.cookies)
             print(response.ok)
-            result = await response.json()
+            result_text = await response.text()
+            print("API Response:", result_text)
 
-            print("API Response:", json.dumps(result, indent=2, ensure_ascii=False))
+            result = await response.json()
 
             # Check if 'exchangeRate' key is present
             if "exchangeRate" in result:
                 # Фильтрация результатов только для USD и EUR
                 filtered_result = [
                     {
-                        rate["date"]: {
+                        rate["baseCurrency"]: {
                             rate["currency"]: {
-                                "sale": float(rate["sale"]),
-                                "purchase": float(rate["purchase"]),
+                                "sale": float(
+                                    rate.get("saleRateNB", rate.get("saleRate", 0))
+                                ),
+                                "purchase": float(
+                                    rate.get(
+                                        "purchaseRateNB", rate.get("purchaseRate", 0)
+                                    )
+                                ),
                             }
                         }
                     }
                     for rate in result["exchangeRate"]
-                    if rate["currency"] in ["USD", "EUR"] and "date" in rate
+                    if rate["currency"] in ["USD", "EUR"]
                 ]
 
                 return filtered_result
             else:
-                print("No 'exchangeRate' key found in the response.")
+                print("No data found in the response.")
                 return []
 
 
