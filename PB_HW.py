@@ -13,15 +13,22 @@ class CurrencyExchange:
         start_date = end_date - timedelta(days=days)
 
         params = {
-            "start_date": start_date.strftime("%d.%m.%Y"),
-            "end_date": end_date.strftime("%d.%m.%Y"),
+            "date": end_date.strftime("%d.%m.%Y"),
+            "json": "true",  # Поменял True на "true"
         }
 
-        async with session.get(self.api_url, params=params) as response:
-            if response.status == 200:
-                return await response.json()
-            else:
-                return None
+        try:
+            async with session.get(self.api_url, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    error_text = await response.text()
+                    print(f"Ошибка при запросе к API. Статус код: {response.status}")
+                    print(f"Текст ошибки: {error_text}")
+                    return None
+        except aiohttp.ClientError as e:
+            print(f"Ошибка при выполнении запроса: {e}")
+            return None
 
     async def get_exchange_rates(self, days):
         async with aiohttp.ClientSession() as session:
@@ -30,7 +37,7 @@ class CurrencyExchange:
 
 
 def main():
-    api_url = "https://api.privatbank.ua/p24api/exchange_rates?json&date="  # фактический URL API
+    api_url = "https://api.privatbank.ua/p24api/exchange_rates"
     max_days = 10
 
     try:
