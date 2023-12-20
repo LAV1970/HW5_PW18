@@ -21,19 +21,28 @@ async def main(days=1):
             print(response.ok)
             result = await response.json()
 
-            # Фильтрация результатов только для USD и EUR
-            filtered_result = [
-                {
-                    rate["date"]: {
-                        rate["currency"]: {
-                            "sale": float(rate["sale"]),
-                            "purchase": float(rate["purchase"]),
+            print("API Response:", json.dumps(result, indent=2, ensure_ascii=False))
+
+            # Check if 'exchangeRate' key is present
+            if "exchangeRate" in result:
+                # Фильтрация результатов только для USD и EUR
+                filtered_result = [
+                    {
+                        rate["date"]: {
+                            rate["currency"]: {
+                                "sale": float(rate["sale"]),
+                                "purchase": float(rate["purchase"]),
+                            }
                         }
                     }
-                }
-                for rate in result["exchangeRate"]
-                if rate["currency"] in ["USD", "EUR"] and "date" in rate
-            ]
+                    for rate in result["exchangeRate"]
+                    if rate["currency"] in ["USD", "EUR"] and "date" in rate
+                ]
+
+                return filtered_result
+            else:
+                print("No 'exchangeRate' key found in the response.")
+                return []
 
 
 if __name__ == "__main__":
