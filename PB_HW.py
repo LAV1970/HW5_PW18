@@ -32,10 +32,8 @@ async def main(days=1):
                     }
                 }
                 for rate in result["exchangeRate"]
-                if rate["currency"] in ["USD", "EUR"]
+                if rate["currency"] in ["USD", "EUR"] and "date" in rate
             ]
-
-            return filtered_result
 
 
 if __name__ == "__main__":
