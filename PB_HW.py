@@ -8,56 +8,48 @@ class CurrencyExchange:
         self.api_url = api_url
         self.max_days = max_days
 
-    async def fetch_exchange_rate(self, session, start_date, end_date):
+    async def fetch_exchange_rate(self, session, date):
         params = {
             "json": "",
             "date": "",
-            "start_date": start_date.strftime("%d.%m.%Y"),
-            "end_date": end_date.strftime("%d.%m.%Y"),
+            "start_date": date.strftime("%d.%m.%Y"),
+            "end_date": date.strftime("%d.%m.%Y"),
         }
 
         try:
             async with session.get(self.api_url, params=params) as response:
-                print(f"Запрос к API: {response.url}")
+                # print(f"Запрос к API: {response.url}")
                 if response.status == 200:
-                    return await response.json()
+                    day_rate = await response.json()
+                    if day_rate:
+                        date_entry = {
+                            date.strftime("%d.%m.%Y"): {
+                                rate["ccy"]: {
+                                    "sale": rate["sale"],
+                                    "purchase": rate["buy"],
+                                }
+                                for rate in day_rate
+                            }
+                        }
+                        return date_entry
+                    else:
+                        print(
+                            f"Пустой ответ от API для дня {date.strftime('%d.%m.%Y')}"
+                        )
                 else:
                     error_text = await response.text()
                     print(f"Ошибка при запросе к API. Статус код: {response.status}")
                     print(f"Текст ошибки: {error_text}")
-                    return None
         except aiohttp.ClientError as e:
             print(f"Ошибка при выполнении запроса: {e}")
-            return None
 
     async def get_exchange_rates(self, days):
         async with aiohttp.ClientSession() as session:
-            end_date = datetime.now()
             result = []
 
             for i in range(days):
-                start_date = end_date - timedelta(days=i)
-                exchange_rate = await self.fetch_exchange_rate(
-                    session, start_date, end_date
-                )
-
-                if exchange_rate:
-                    # Выводим структуру ответа перед обращением к 'date'
-                    print(exchange_rate)
-
-                    day_rate = exchange_rate[
-                        0
-                    ]  # Предполагаем, что ответ содержит только один элемент
-                    filtered_result = [
-                        {
-                            "date": day_rate.get("date"),
-                            "baseCurrency": day_rate.get("base_ccy"),
-                            "currency": day_rate.get("ccy"),
-                            "sale": day_rate.get("sale"),
-                            "purchase": day_rate.get("buy"),
-                        }
-                    ]
-                    result.extend(filtered_result)
+                end_date = datetime.now() - timedelta(days=i)
+                result.append(await self.fetch_exchange_rate(session, end_date))
 
             return result if result else None
 
