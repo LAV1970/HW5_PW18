@@ -11,31 +11,31 @@ logging.basicConfig(level=logging.INFO)
 class Server:
     clients = set()
 
-    async def register(self, ws: WebSocketServerProtocol):
-        ws.name = names.get_full_name()
-        self.clients.add(ws)
-        logging.info(f"{ws.remote_address} connects")
+    async def register(self, wss: WebSocketServerProtocol):
+        wss.name = names.get_full_name()
+        self.clients.add(wss)
+        logging.info(f"{wss.remote_address} connects")
 
-    async def unregister(self, ws: WebSocketServerProtocol):
-        self.clients.remove(ws)
-        logging.info(f"{ws.remote_address} disconnects")
+    async def unregister(self, wss: WebSocketServerProtocol):
+        self.clients.remove(wss)
+        logging.info(f"{wss.remote_address} disconnects")
 
     async def send_to_clients(self, message: str):
         if self.clients:
             [await client.send(message) for client in self.clients]
 
-    async def ws_handler(self, ws: WebSocketServerProtocol):
-        await self.register(ws)
+    async def ws_handler(self, wss: WebSocketServerProtocol):
+        await self.register(wss)
         try:
-            await self.distrubute(ws)
+            await self.distrubute(wss)
         except ConnectionClosedOK:
             pass
         finally:
-            await self.unregister(ws)
+            await self.unregister(wss)
 
-    async def distrubute(self, ws: WebSocketServerProtocol):
-        async for message in ws:
-            await self.send_to_clients(f"{ws.name}: {message}")
+    async def distrubute(self, wss: WebSocketServerProtocol):
+        async for message in wss:
+            await self.send_to_clients(f"{wss.name}: {message}")
 
 
 async def main():
