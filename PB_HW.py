@@ -8,7 +8,7 @@ class CurrencyExchange:
         self.api_url = api_url
         self.max_days = max_days
 
-    async def fetch_exchange_rate(self, session, date):
+    async def fetch_exchange_rate(self, session, date, additional_currencies=None):
         params = {
             "json": "",
             "date": "",
@@ -18,7 +18,6 @@ class CurrencyExchange:
 
         try:
             async with session.get(self.api_url, params=params) as response:
-                # print(f"Запрос к API: {response.url}")
                 if response.status == 200:
                     day_rate = await response.json()
                     if day_rate:
@@ -31,6 +30,19 @@ class CurrencyExchange:
                                 for rate in day_rate
                             }
                         }
+
+                        # Добавление дополнительных валют в ответ
+                        if additional_currencies:
+                            for currency in additional_currencies:
+                                if (
+                                    currency
+                                    not in date_entry[date.strftime("%d.%m.%Y")]
+                                ):
+                                    date_entry[date.strftime("%d.%m.%Y")][currency] = {
+                                        "sale": "N/A",
+                                        "purchase": "N/A",
+                                    }
+
                         return date_entry
                     else:
                         print(
@@ -43,13 +55,17 @@ class CurrencyExchange:
         except aiohttp.ClientError as e:
             print(f"Ошибка при выполнении запроса: {e}")
 
-    async def get_exchange_rates(self, days):
+    async def get_exchange_rates(self, days, additional_currencies=None):
         async with aiohttp.ClientSession() as session:
             result = []
 
             for i in range(days):
                 end_date = datetime.now() - timedelta(days=i)
-                result.append(await self.fetch_exchange_rate(session, end_date))
+                result.append(
+                    await self.fetch_exchange_rate(
+                        session, end_date, additional_currencies
+                    )
+                )
 
             return result if result else None
 
@@ -69,8 +85,17 @@ def main():
                 f"Ошибка: Вы можете запрашивать курсы обмена только на {max_days} дней вперёд"
             )
 
+        additional_currencies = input(
+            "Введите дополнительные валюты через запятую (например, USD,EUR): "
+        ).split(",")
+        additional_currencies = [
+            currency.strip().upper() for currency in additional_currencies
+        ]
+
         currency_exchange = CurrencyExchange(api_url, max_days)
-        exchange_rate = asyncio.run(currency_exchange.get_exchange_rates(days))
+        exchange_rate = asyncio.run(
+            currency_exchange.get_exchange_rates(days, additional_currencies)
+        )
 
         if exchange_rate:
             print(exchange_rate)
