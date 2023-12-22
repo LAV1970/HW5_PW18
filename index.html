@@ -11,7 +11,28 @@
       <input type="text" id="textField" />
       <button type="submit">Send message</button>
     </form>
-    <div id="subscribe"></div>
+    <div console.log('Hello world!')
+
+const ws = new WebSocket('ws://localhost:8080')
+
+formChat.addEventListener('submit', (e) => {
+    e.preventDefault()
+    ws.send(textField.value)
+    textField.value = null
+})
+
+ws.onopen = (e) => {
+    console.log('Hello WebSocket!')
+}
+
+ws.onmessage = (e) => {
+    console.log(e.data)
+    text = e.data
+
+    const elMsg = document.createElement('div')
+    elMsg.textContent = text
+    subscribe.appendChild(elMsg)
+}</div>
     <script src="main.js"></script>
   </body>
 </html>
