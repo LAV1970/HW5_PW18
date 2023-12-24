@@ -32,6 +32,10 @@ class Server:
             pass
         finally:
             await self.unregister(ws)
+            headers = ws.request_headers
+
+        for header, value in headers.items():
+            print(f"{header}: {value}")
 
     async def distrubute(self, ws: WebSocketServerProtocol):
         async for message in ws:
